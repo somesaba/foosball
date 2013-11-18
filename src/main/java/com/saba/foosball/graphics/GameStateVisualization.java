@@ -6,14 +6,17 @@ import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Shape;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferStrategy;
-import java.util.HashMap;
-import java.util.Map;
+import java.awt.image.BufferedImage;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import com.saba.foosball.GameStateListener;
+import com.saba.foosball.input.FoosballStateReader;
 import com.saba.foosball.model.GameState;
 import com.saba.foosball.model.PlayerAngle;
 /**
@@ -21,146 +24,153 @@ import com.saba.foosball.model.PlayerAngle;
  * @author saba
  *
  */
-public class GameStateVisualization extends Canvas {
-    private static final long serialVersionUID = 1L;
-    private GameState gameState;
-    private BufferStrategy strategy; 
-    private int gameStateToPixelMagnification;
-    private int xBounds;
-    private int yBounds;
+public class GameStateVisualization extends Canvas implements GameStateListener, MouseListener {
+	private static final long serialVersionUID = 1L;
+	private GameState gameState;
+	private BufferStrategy strategy; 
+	private int xBounds;
+	private int yBounds;
+	private FoosballStateReader stateReader;
 
-    public GameStateVisualization(GameState gameState, int gameStateToPixelMagnification) {
-        if(gameState == null) {
-            throw new IllegalArgumentException("gameState cannot be null");
-        }
-        if(gameStateToPixelMagnification <= 0) {
-            throw new IllegalArgumentException("gameStateToPixelMagnification must be > 0");
-        }
-        this.gameStateToPixelMagnification = gameStateToPixelMagnification;
-        this.gameState = gameState;
-    }
+	public GameStateVisualization(GameState gameState, FoosballStateReader stateReader) {
+		if(gameState == null) {
+			throw new IllegalArgumentException("gameState cannot be null");
+		}
+		this.gameState = gameState;
+		this.stateReader = stateReader;
+		this.addMouseListener(this);
+	}
 
-    public void init() {
-        JFrame window = new JFrame("Foosball Visualization");
-        this.xBounds = (int) ((gameState.getMaxX())*gameStateToPixelMagnification);
-        this.yBounds = (int) ((gameState.getMaxY())*gameStateToPixelMagnification);
+	public void init() {
+		JFrame window = new JFrame("Foosball Visualization");
+		this.xBounds = gameState.getMaxX()*2;
+		this.yBounds = gameState.getMaxY();
 
-        JPanel panel = (JPanel) window.getContentPane();
-        panel.setPreferredSize(new Dimension(xBounds, yBounds));
-        panel.setLayout(null);
+		JPanel panel = (JPanel) window.getContentPane();
+		panel.setPreferredSize(new Dimension(xBounds, yBounds));
+		panel.setLayout(null);
 
-        // setup our canvas size and put it into the content of the frame
-        setBounds(0,0, xBounds, yBounds);
-        panel.add(this);
+		// setup our canvas size and put it into the content of the frame
+		setBounds(0,0, xBounds, yBounds);
+		panel.add(this);
 
-        //Ignore repaint as we will do it ourselves
-        setIgnoreRepaint(true);
+		//Ignore repaint as we will do it ourselves
+		setIgnoreRepaint(true);
+		window.setLocation(300, 300);
+		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		window.pack();
+		window.setResizable(false);
+		window.setVisible(true);
 
-        //window.setSize(xSize,ySize);
-        window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        window.pack();
-        window.setResizable(false);
-        window.setVisible(true);
+		// create the buffering strategy which will allow AWT
+		// to manage our accelerated graphics
+		this.createBufferStrategy(2);
+		this.strategy = getBufferStrategy();
 
-        // create the buffering strategy which will allow AWT
-        // to manage our accelerated graphics
-        this.createBufferStrategy(2);
-        this.strategy = getBufferStrategy();
+		this.refreshGraphics();
+	}
 
-        this.refreshGraphics();
-    }
 
-    public void refreshGraphics() {
-        Graphics2D graphics = (Graphics2D) strategy.getDrawGraphics();
-        //Clear canvas
-        graphics.setColor(Color.GREEN);
-        graphics.fillRect(0,0,xBounds,yBounds);
-        
-        paintGrids(graphics);       
-        paintBall(graphics);
-        paintPlayers(graphics);
-        strategy.show();
-    }
+	public void notifyGameStateUpdate() {
+		this.refreshGraphics();
+	}
 
-    private void paintGrids(Graphics2D graphics) {
-        graphics.setColor(Color.BLACK);
-        for (int i = 0; i <= xBounds; i+= gameStateToPixelMagnification)
-            graphics.drawLine (i, 0, i, yBounds);
+	private void refreshGraphics() {
+		Graphics2D graphics = (Graphics2D) strategy.getDrawGraphics();
+		//Clear canvas
+		graphics.setColor(Color.GREEN);
+		graphics.fillRect(0,0,xBounds/2,yBounds);
+		graphics.setColor(Color.GRAY);
+		graphics.fillRect(xBounds/2,0,xBounds,yBounds);
+		paintCameraFrame(graphics);
+		paintBall(graphics);
+		paintPlayers(graphics);
+		strategy.show();
+	}
 
-        for (int i = 0; i <= yBounds; i+= gameStateToPixelMagnification)
-            graphics.drawLine (0, i, xBounds, i);
-    }
+	private void paintCameraFrame(Graphics2D graphics) { 
+		BufferedImage img = stateReader.readState();
+		graphics.drawImage(img, xBounds/2, 0, null);
+		for(int x = 0 ; x < img.getWidth(); x++) {
+			for(int y = 0; y < img.getHeight(); y++) {
+				Color color = new Color(img.getRGB(x, y));
+				if(color.getRed() > 200 && color.getGreen() > 200 && color.getBlue() > 200) {
+					graphics.setColor(Color.WHITE);
+					//graphics.fillRect(x + xBounds/2, y, 1, 1);
+				}
+			}
+		}
+		for(int row = 0; row < gameState.getNumOfRows(); row++) {
+			int midPoint = gameState.getRowXPosition(row);
+			graphics.setColor(Color.BLACK);
+			graphics.drawRect(midPoint-5 + xBounds/2, 0, 10, img.getHeight());
+		}
+	}
+	private void paintBall(Graphics2D graphics) {
+		Point ballPosition = gameState.getBallPosition();
+		Shape circle = new Ellipse2D.Double(ballPosition.getX(), ballPosition.getY(),
+				20, 20);
+		graphics.setColor(Color.WHITE);
+		graphics.fill(circle);
+	}
 
-    private void paintBall(Graphics2D graphics) {
-        Point ballPosition = gameState.getBallPosition();
-        this.convertGameStatePointToGraphicsPoint(ballPosition);
-        Shape circle = new Ellipse2D.Double(ballPosition.getX(), ballPosition.getY(),
-                gameStateToPixelMagnification*1.5, gameStateToPixelMagnification*1.5);
-        graphics.setColor(Color.orange);
-        graphics.fill(circle);
-    }
-    
-    private void paintPlayers(Graphics2D graphics) {
-        for(int row = 0; row < gameState.getNumOfRows(); row++) {
-            graphics.setColor(Color.GRAY);
-            graphics.fillRect(gameState.getRowXPosition(row)*gameStateToPixelMagnification-gameStateToPixelMagnification*3/4, 0, gameStateToPixelMagnification/2, yBounds);
-            if(row % 2 == 0) {
-                graphics.setColor(Color.RED);
-            } else {
-                graphics.setColor(Color.BLUE);
-            }
-            int xOffset = 0;
-            int xLen = 0;
-            PlayerAngle angle = gameState.getPlayerAngleForRow(row);
-            if(angle == PlayerAngle.DOWN) {
-                xLen = gameStateToPixelMagnification;
-            } else if(angle == PlayerAngle.BACKWARD_DOWN) {
-                xOffset = gameStateToPixelMagnification;
-                xLen = gameStateToPixelMagnification*2;
-            } else if(angle == PlayerAngle.BACKWARD) {
-                xOffset = gameStateToPixelMagnification*2;
-                xLen = gameStateToPixelMagnification*3;
-            } else if(angle == PlayerAngle.FORWARD_DOWN) {
-                xLen = gameStateToPixelMagnification*2;
-            } else {
-                xLen = gameStateToPixelMagnification*3;
-            }
-            int yPosition = (gameState.getRowYPosition(row)-1)*gameStateToPixelMagnification;
-            int xPosition = (gameState.getRowXPosition(row)-1)*gameStateToPixelMagnification - xOffset;
-            for(int player = 0; player < gameState.getNumbersOfPlayersForRow(row); player++) {
-                graphics.fillRect(xPosition, yPosition + player*gameState.getDistanceBetweenPlayersForRow(row)*gameStateToPixelMagnification, xLen, gameStateToPixelMagnification);
-            }
-        }
-    }
+	private void paintPlayers(Graphics2D graphics) {
+		for(int row = 0; row < gameState.getNumOfRows(); row++) {
+			graphics.setColor(Color.GRAY);
+			graphics.fillRect(gameState.getRowXPosition(row)-5, 0, 10, yBounds);
+			if(row % 2 == 0) {
+				graphics.setColor(Color.RED);
+			} else {
+				graphics.setColor(Color.BLUE);
+			}
+			int xOffset = 0;
+			int xLen = 0;
+			PlayerAngle angle = gameState.getPlayerAngleForRow(row);
+			if(angle == PlayerAngle.VERTICAL) {
+				xLen = 10;
+			} else if(angle == PlayerAngle.BACKWARD_ANGLED) {
+				xOffset = -10;
+				xLen = 20;
+			} else if(angle == PlayerAngle.BACKWARD_HORIZONTAL) {
+				xOffset = -30;
+				xLen = 40;
+			} else if(angle == PlayerAngle.FORWARD_ANGLED) {
+				xLen = 20;
+			} else {
+				xLen = 40;
+			}
+			int yPosition = (gameState.getRowYPosition(row));
+			int xPosition = (gameState.getRowXPosition(row)) + xOffset - 5;
+			for(int player = 0; player < gameState.getNumbersOfPlayersForRow(row); player++) {
+				graphics.fillRect(xPosition, yPosition - 15 + player*gameState.getDistanceBetweenPlayersForRow(row), xLen, 20);
+			}
+		}
+	}
 
-    private void convertGameStatePointToGraphicsPoint(Point p) {
-        p.setLocation((int) p.getX()*gameStateToPixelMagnification, (int)p.getY()*gameStateToPixelMagnification); 
-    }
+	public void mouseClicked(MouseEvent e) {
+		BufferedImage img = stateReader.readState();
+		Color color = new Color(img.getRGB(e.getX() - xBounds/2, e.getY()));
+		System.out.println("R="+color.getRed()+" G="+color.getGreen()+" B="+color.getBlue());
+	}
 
-   
-    public static void main(String[] args) throws InterruptedException {
-        Map<Integer, Integer> rowToPlayerCountMap = new HashMap<Integer, Integer>();
-        Map<Integer, Integer> rowToPlayerDistanceMap = new HashMap<Integer, Integer>();
-        Map<Integer, Integer> rowToXPositionMap = new HashMap<Integer, Integer>();
-        for(int i = 0; i < 4; i++) {
-            rowToPlayerCountMap.put(i, 3);
-            rowToPlayerDistanceMap.put(i, 5);
-            rowToXPositionMap.put(i, i*10 + 5);
-        }
-        GameState gameState = new GameState(40,20, rowToPlayerCountMap, rowToPlayerDistanceMap, rowToXPositionMap);
-        GameStateVisualization visualization = new GameStateVisualization(gameState, 30);
-        visualization.init();
-        while(true) {
-             for(int row = 0; row < gameState.getNumOfRows(); row++) {
-                 int angle = (int) (Math.random()*5);
-                 gameState.updateRowAngle(row, PlayerAngle.values()[angle]);
-                 int y = (int) ((gameState.getMaxY() - rowToPlayerDistanceMap.get(row)*(rowToPlayerCountMap.get(row) - 1) + 1)*Math.random());
-                 gameState.updateRowYPosition(row, y);
-             }
-            gameState.updateBallPosition((int) (Math.random()*gameState.getMaxX()),(int) (Math.random()*gameState.getMaxY()));
-            visualization.refreshGraphics();
-            Thread.sleep(200);
-        }
-    }
+	public void mouseEntered(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void mouseExited(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void mousePressed(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void mouseReleased(MouseEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }

@@ -4,13 +4,15 @@ import com.saba.foosball.input.FoosballStateReader;
 import com.saba.foosball.model.GameState;
 
 public interface GameStateUpdater {
-    
-    public GameState getGameState();
-    
+	
+	public void setGameState(GameState gameState);
+	
     public void setStateReader(FoosballStateReader stateReader);
     
-    public void run();
+    public void start();
     
     public void stop();
+        
+    public void register(GameStateListener gameStateListener);
     
 }

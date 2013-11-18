@@ -78,7 +78,7 @@ public class GameState {
         
         //Init Players down and in the middle
         for(int row : rowToXPositionMap.keySet()) {
-            rowToAngleMap.put(row, PlayerAngle.DOWN);
+            rowToAngleMap.put(row, PlayerAngle.VERTICAL);
             int middleY = (maxY - rowToPlayerDistanceMap.get(row)*(rowToPlayerCountMap.get(row) - 1))/2;
             rowToYPositionMap.put(row, middleY);
         }

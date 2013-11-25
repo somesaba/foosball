@@ -2,8 +2,11 @@ package com.saba.foosball.input;
 
 import java.awt.image.BufferedImage;
 
+public interface FoosballStateReader {
 
-public interface FoosballStateReader {    
-    
-	BufferedImage readState();
+    public void start();
+
+    public void stop();
+
+    BufferedImage readState();
 }

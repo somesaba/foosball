@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.saba.foosball.input.FoosballStateReader;
 import com.saba.foosball.model.GameState;
+import com.saba.foosball.model.Player;
 import com.saba.foosball.model.PlayerAngle;
 import com.saba.foosball.model.PotentialPositionRectangle;
 
@@ -29,6 +30,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
             updatePlayerPositions(img);
             updateBallPosition(img);
             notifyListeners();
+            // Prompt user input
         }
 
     }
@@ -258,6 +260,10 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
     }
 
     private void updateBallPosition(BufferedImage img) {
+        // Dont track ball until round restarts
+        if (gameState.getPlayerThatScored() != null) {
+            return;
+        }
         List<PotentialPositionRectangle> potentialBallPositionRectangles = new ArrayList<PotentialPositionRectangle>();
         for (int x = 0; x < img.getWidth(); x++) {
             for (int y = 0; y < img.getHeight(); y++) {
@@ -265,7 +271,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                 if (color.getRed() > 200 && color.getGreen() > 200 && color.getBlue() > 200) {
                     List<PotentialPositionRectangle> rectMemberships = new ArrayList<PotentialPositionRectangle>();
                     for (PotentialPositionRectangle rect : potentialBallPositionRectangles) {
-                        if (rect.isNearby(x, y, 10)) {
+                        if (rect.isPotentialMember(x, y)) {
                             rectMemberships.add(rect);
                             rect.addMember(x, y);
                         }
@@ -286,23 +292,34 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
             }
         }
         // Get the rectangle that is closest to a 25x25 square
-        PotentialPositionRectangle bestRect = null;
+        int ballXPosition = gameState.getBallXPosition();
+        int ballYPosition = gameState.getBallYPosition();
         double bestScore = Double.MAX_VALUE;
         for (PotentialPositionRectangle rect : potentialBallPositionRectangles) {
-            double score = Math.sqrt(Math.pow(25 - rect.getXLen(), 2) + Math.pow(25 - rect.getYLen(), 2));
+            int xEnd = rect.getxEnd() >= gameState.getMaxX() ? gameState.getMaxX() - 1 : rect.getxEnd();
+            int xStart = rect.getxStart() < 0 ? 0 : rect.getxStart();
+            int yEnd = rect.getyEnd() >= gameState.getMaxY() ? gameState.getMaxY() - 1 : rect.getyEnd();
+            int yStart = rect.getyStart() < 0 ? 0 : rect.getyStart();
+            int xPosition = xStart + (xEnd - xStart) / 2;
+            int yPosition = yStart + (yEnd - yStart) / 2;
+            // Score = distance from perfect 22x22 square and distance from last ball position
+            double score = Math.sqrt(Math.pow(22 - rect.getXLen(), 2) + Math.pow(22 - rect.getYLen(), 2))
+                    + (Math.sqrt(Math.pow(gameState.getBallXPosition() - xPosition, 2)
+                            + Math.pow(gameState.getBallYPosition() - yPosition, 2))) / 2;
             if (score < bestScore) {
                 bestScore = score;
-                bestRect = rect;
+                ballXPosition = xPosition;
+                ballYPosition = yPosition;
             }
         }
-        if (bestRect == null) {
-            return;
+        // System.out.println("Best Rec Size=" + (xEnd - xStart) + "," + (yEnd - yStart) + "\t dist=" + bestScore);
+        gameState.updateBallPosition(ballXPosition, ballYPosition);
+        if (ballXPosition < 10) {
+            gameState.setScoringPlayer(Player.SELF);
         }
-        int xEnd = bestRect.getxEnd() >= gameState.getMaxX() ? gameState.getMaxX() - 1 : bestRect.getxEnd();
-        int xStart = bestRect.getxStart() < 0 ? 0 : bestRect.getxStart();
-        int yEnd = bestRect.getyEnd() >= gameState.getMaxY() ? gameState.getMaxY() - 1 : bestRect.getyEnd();
-        int yStart = bestRect.getyStart() < 0 ? 0 : bestRect.getyStart();
-        gameState.updateBallPosition(xStart + (xEnd - xStart) / 2, yStart + (yEnd - yStart) / 2);
+        if (ballXPosition > 310) {
+            gameState.setScoringPlayer(Player.ENEMY);
+        }
 
     }
 

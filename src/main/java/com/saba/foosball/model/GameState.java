@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * 
@@ -27,13 +26,14 @@ public class GameState {
     private final Map<Integer, Integer> rowToPlayerDistanceMap;
     // A Map of the fixed x-position of the players for each row, row 0 is your goalie
     private final Map<Integer, Integer> rowToXPositionMap;
-
     private volatile int prevBallXPosition;
     private volatile int prevBallYPosition;
     private volatile int ballXPosition;
     private volatile int ballYPosition;
-    private ConcurrentMap<Integer, Integer> rowToYPositionMap;
-    private ConcurrentMap<Integer, PlayerAngle> rowToAngleMap;
+    private volatile Map<Integer, Integer> rowToYPositionMap;
+    private volatile Map<Integer, PlayerAngle> rowToAngleMap;
+
+    private volatile Player playerThatScored = null;
 
     public GameState(int maxX, int maxY, Map<Integer, Integer> rowToPlayerCountMap,
             Map<Integer, Integer> rowToPlayerDistanceMap, Map<Integer, Integer> rowToXPositionMap)
@@ -86,6 +86,30 @@ public class GameState {
             int middleY = (maxY - rowToPlayerDistanceMap.get(row) * (rowToPlayerCountMap.get(row) - 1)) / 2;
             rowToYPositionMap.put(row, middleY);
         }
+    }
+
+    /**
+     * 
+     * @return The player that scored or null if no one has scored in this round
+     */
+    public Player getPlayerThatScored() {
+        return playerThatScored;
+    }
+
+    /**
+     * 
+     * @param player
+     *            set player that scored or null if the round has restarted
+     */
+    public void setScoringPlayer(Player player) {
+        playerThatScored = player;
+    }
+
+    public void restartRound() {
+        // Init ball to the center
+        this.ballXPosition = maxX / 2;
+        this.ballYPosition = maxY / 2;
+        playerThatScored = null;
     }
 
     /**
@@ -240,11 +264,11 @@ public class GameState {
         return rowToXPositionMap;
     }
 
-    public ConcurrentMap<Integer, Integer> getRowToYPositionMap() {
+    public Map<Integer, Integer> getRowToYPositionMap() {
         return rowToYPositionMap;
     }
 
-    public ConcurrentMap<Integer, PlayerAngle> getRowToAngleMap() {
+    public Map<Integer, PlayerAngle> getRowToAngleMap() {
         return rowToAngleMap;
     }
 

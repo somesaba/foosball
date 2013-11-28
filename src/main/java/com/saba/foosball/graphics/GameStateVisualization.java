@@ -21,6 +21,7 @@ import javax.swing.JPanel;
 import com.saba.foosball.GameStateListener;
 import com.saba.foosball.input.FoosballStateReader;
 import com.saba.foosball.model.GameState;
+import com.saba.foosball.model.Player;
 import com.saba.foosball.model.PlayerAngle;
 import com.saba.foosball.model.PotentialPositionRectangle;
 
@@ -290,6 +291,11 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
     }
 
     private void paintBall(Graphics2D graphics) {
+        Player playerThatScored = gameState.getPlayerThatScored();
+        if (playerThatScored != null) {
+            System.out.println("GOAL " + playerThatScored);
+            return;
+        }
         Point ballPosition = gameState.getBallPosition();
         Shape circle = new Ellipse2D.Double(ballPosition.getX() - 10, ballPosition.getY() - 10, 20, 20);
         graphics.setColor(Color.WHITE);
@@ -349,7 +355,7 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
                 if (color.getRed() > 200 && color.getGreen() > 200 && color.getBlue() > 200) {
                     List<PotentialPositionRectangle> rectMemberships = new ArrayList<PotentialPositionRectangle>();
                     for (PotentialPositionRectangle rect : potentialBallPositionRectangles) {
-                        if (rect.isNearby(x, y, 10)) {
+                        if (rect.isPotentialMember(x, y)) {
                             rectMemberships.add(rect);
                             rect.addMember(x, y);
                         }

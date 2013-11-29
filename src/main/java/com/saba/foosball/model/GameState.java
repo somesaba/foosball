@@ -17,9 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class GameState {
     // The number of discrete points in the x-axis, perpendicular to the players
-    private final Integer maxX;
+    private final Integer xLength;
     // The number of discrete points in the y-axis, parallel to the players
-    private final Integer maxY;
+    private final Integer yLength;
     // A Map of the number of the players each row of players has, row 0 is your goalie
     private final Map<Integer, Integer> rowToPlayerCountMap;
     // A Map of the distance between players each row of players, row 0 is your goalie
@@ -38,8 +38,8 @@ public class GameState {
     public GameState(int maxX, int maxY, Map<Integer, Integer> rowToPlayerCountMap,
             Map<Integer, Integer> rowToPlayerDistanceMap, Map<Integer, Integer> rowToXPositionMap)
             throws IllegalArgumentException {
-        this.maxX = maxX;
-        this.maxY = maxY;
+        this.xLength = maxX;
+        this.yLength = maxY;
         this.rowToPlayerCountMap = rowToPlayerCountMap;
         this.rowToPlayerDistanceMap = rowToPlayerDistanceMap;
         this.rowToXPositionMap = rowToXPositionMap;
@@ -107,8 +107,8 @@ public class GameState {
 
     public void restartRound() {
         // Init ball to the center
-        this.ballXPosition = maxX / 2;
-        this.ballYPosition = maxY / 2;
+        this.ballXPosition = xLength / 2;
+        this.ballYPosition = yLength / 2;
         playerThatScored = null;
     }
 
@@ -119,13 +119,13 @@ public class GameState {
      * @param y
      */
     public void updateBallPosition(int x, int y) throws IllegalArgumentException {
-        if (x >= maxX || x < 0) {
+        if (x >= xLength || x < 0) {
             throw new IllegalArgumentException("x must be <= maxX and >= 0");
         } else {
             prevBallXPosition = ballXPosition;
             ballXPosition = x;
         }
-        if (y >= maxY || y < 0) {
+        if (y >= yLength || y < 0) {
             throw new IllegalArgumentException("y must be <= mayY and >= 0");
         } else {
             prevBallYPosition = ballYPosition;
@@ -134,13 +134,13 @@ public class GameState {
     }
 
     public void updateRowYPosition(int row, int y) throws IllegalArgumentException {
-        if (y >= maxY || y < 0) {
+        if (y >= yLength || y < 0) {
             throw new IllegalArgumentException("x must be < maxX and >= 0");
         }
         if (rowToYPositionMap.containsKey(row)) {
             // Make sure this position is plausible
             int positionOfLastPlayer = rowToPlayerCountMap.get(row) * rowToPlayerDistanceMap.get(row);
-            if (positionOfLastPlayer >= maxY) {
+            if (positionOfLastPlayer >= yLength) {
                 throw new IllegalArgumentException("row " + row + ": distanceBetweenPlayers*numOfPlayers exceeds maxX");
             }
             rowToYPositionMap.put(row, y);
@@ -245,11 +245,11 @@ public class GameState {
     }
 
     public Integer getMaxX() {
-        return maxX;
+        return xLength;
     }
 
     public Integer getMaxY() {
-        return maxY;
+        return yLength;
     }
 
     public Map<Integer, Integer> getRowToPlayerCountMap() {

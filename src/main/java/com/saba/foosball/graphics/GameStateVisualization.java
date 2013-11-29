@@ -123,8 +123,8 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
     private void paintCameraFrame(Graphics2D graphics) {
         BufferedImage img = stateReader.readState();
         graphics.drawImage(img, xBounds / 2, 0, null);
-        // paintCameraPlayerRects(img, graphics);
-        // paintCameraPlayerLegRects(img, graphics);
+        paintCameraPlayerRects(img, graphics);
+        paintCameraPlayerLegRects(img, graphics);
 
         paintCameraBallRects(img, graphics);
     }
@@ -133,7 +133,7 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
         for (int row = 0; row < gameState.getNumOfRows(); row++) {
             int midPoint = gameState.getRowXPosition(row);
             graphics.setColor(Color.WHITE);
-            // graphics.drawRect(midPoint - 5 + xBounds / 2, 0, 10, img.getHeight());
+            graphics.drawRect(midPoint - 5 + xBounds / 2, 0, 10, img.getHeight());
             if (row == 1 || row == 3) {
                 graphics.setColor(Color.RED);
             } else {

@@ -305,7 +305,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
             // Score = distance from perfect 22x22 square and distance from last ball position
             double score = Math.sqrt(Math.pow(22 - rect.getXLen(), 2) + Math.pow(22 - rect.getYLen(), 2))
                     + (Math.sqrt(Math.pow(gameState.getBallXPosition() - xPosition, 2)
-                            + Math.pow(gameState.getBallYPosition() - yPosition, 2))) / 2;
+                            + Math.pow(gameState.getBallYPosition() - yPosition, 2))) / 3;
             if (score < bestScore) {
                 bestScore = score;
                 ballXPosition = xPosition;

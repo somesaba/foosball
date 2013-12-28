@@ -4,46 +4,41 @@ import gnu.io.CommPortIdentifier;
 import gnu.io.SerialPort;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.Map;
+import java.util.List;
 
-import com.saba.foosball.model.GameState;
 import com.saba.foosball.model.PlayerAngle;
 
 public class USBWriter {
 
     private SerialPort serialPort;
-    /** The port we're normally going to use. */
-    private static final String PORT_NAMES[] = { "/dev/ttyUSB0" };
-
     /** The output stream to the port */
     private OutputStream output;
     /** Milliseconds to block while waiting for port open */
     private static final int TIME_OUT = 2000;
     /** Default bits per second for COM port. */
     private static final int DATA_RATE = 9600;
+    // Experimentally Derived
+    double yPositionToByteFactor = 1;
+    List<Byte> rowYPosisitionOffset = new ArrayList<Byte>();
 
-    double yPositionToByteFactor = 0;
-
-    public void initialize(GameState gameState) {
+    public void initialize() {
         // Calculate gameState to byte factors
-        yPositionToByteFactor = 255 / (gameState.getMaxY() - 1);
-
+        yPositionToByteFactor = 45d / 70d;
+        rowYPosisitionOffset.add((byte) 83);
+        rowYPosisitionOffset.add((byte) 63);
         CommPortIdentifier portId = null;
-        Enumeration portEnum = CommPortIdentifier.getPortIdentifiers();
 
-        // First, Find an instance of serial port as set in PORT_NAMES.
-        while (portEnum.hasMoreElements()) {
-            CommPortIdentifier currPortId = (CommPortIdentifier) portEnum.nextElement();
-            for (String portName : PORT_NAMES) {
-                if (currPortId.getName().equals(portName)) {
-                    portId = currPortId;
-                    break;
-                }
-            }
+        try {
+            portId = CommPortIdentifier.getPortIdentifier("/dev/ttyACM0");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
         if (portId == null) {
             System.out.println("Could not find COM port.");
             return;
@@ -59,37 +54,75 @@ public class USBWriter {
 
             // open the stream
             output = serialPort.getOutputStream();
+            (new Thread(new SerialReader(serialPort.getInputStream()))).start();
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void setPlayerPositions(Map<Integer, Integer> rowToYPositionMap, Map<Integer, PlayerAngle> rowToAngleMap) {
+    public void setPlayerPositions(List<Integer> intendedYPositions, List<PlayerAngle> intendedPlayerAngles) {
         // Map integers to bytes
-        ByteBuffer buf = ByteBuffer.allocate(rowToAngleMap.size() * 2);
-        for (int row = 0; row < rowToAngleMap.size(); row++) {
-            byte yPosition = (byte) (rowToYPositionMap.get(row) * yPositionToByteFactor);
-            PlayerAngle intendedAngle = rowToAngleMap.get(row);
-            byte angleByte = (byte) 127;
-            if (intendedAngle == PlayerAngle.BACKWARD_ANGLED) {
-                angleByte = (byte) 191;
-            } else if (intendedAngle == PlayerAngle.BACKWARD_HORIZONTAL) {
-                angleByte = (byte) 255;
-            } else if (intendedAngle == PlayerAngle.FORWARD_ANGLED) {
-                angleByte = (byte) 63;
-            } else if (intendedAngle == PlayerAngle.FORWARD_HORIZONTAL) {
-                angleByte = (byte) 0;
-            }
-            buf.put(yPosition);
-            buf.put(angleByte);
-        }
         try {
+            ByteBuffer buf = ByteBuffer.allocate(intendedPlayerAngles.size() * 2);
+            for (int controllablePlayerRow = 0; controllablePlayerRow < intendedPlayerAngles.size(); controllablePlayerRow++) {
+                byte yPosition = 0;
+                if (controllablePlayerRow == 0)
+                    yPosition = (byte) (((intendedYPositions.get(controllablePlayerRow) - 152) * yPositionToByteFactor));
+                else
+                    yPosition = (byte) ((223 - intendedYPositions.get(controllablePlayerRow)) * yPositionToByteFactor);
+
+                if (yPosition > 40)
+                    yPosition = 40;
+                if (yPosition < 0)
+                    yPosition = 0;
+                yPosition += rowYPosisitionOffset.get(controllablePlayerRow);
+                PlayerAngle intendedAngle = intendedPlayerAngles.get(controllablePlayerRow);
+                byte angleByte = (byte) 90;
+                if (intendedAngle == PlayerAngle.BACKWARD_ANGLED) {
+                    angleByte = (byte) 45;
+                } else if (intendedAngle == PlayerAngle.BACKWARD_HORIZONTAL) {
+                    angleByte = (byte) 0;
+                } else if (intendedAngle == PlayerAngle.FORWARD_ANGLED) {
+                    angleByte = (byte) 0x87;
+                } else if (intendedAngle == PlayerAngle.FORWARD_HORIZONTAL) {
+                    angleByte = (byte) 0xB4;
+                }
+                if (controllablePlayerRow == 0)
+                    System.out.println("Row=" + controllablePlayerRow + "; y=" + yPosition + "; unfactored="
+                            + (intendedYPositions.get(controllablePlayerRow)));
+                else
+                    System.out.println("Row=" + controllablePlayerRow + "; y=" + yPosition + "; unfactored="
+                            + (intendedYPositions.get(controllablePlayerRow)));
+                buf.put(yPosition);
+                buf.put(angleByte);
+            }
             output.write(buf.array());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+    }
+
+    /** */
+    public static class SerialReader implements Runnable {
+        InputStream in;
+
+        public SerialReader(InputStream in) {
+            this.in = in;
+        }
+
+        public void run() {
+            byte[] buffer = new byte[1024];
+            int len = -1;
+            try {
+                while ((len = this.in.read(buffer)) > -1) {
+                    System.out.print(new String(buffer, 0, len));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -102,4 +135,12 @@ public class USBWriter {
         }
     }
 
+    public static void main(String[] args) {
+        Enumeration ports = CommPortIdentifier.getPortIdentifiers();
+        System.out.println("PRTS:" + ports.toString());
+        while (ports.hasMoreElements()) {
+            CommPortIdentifier currPortId = (CommPortIdentifier) ports.nextElement();
+            System.out.println("PRT" + currPortId.getName());
+        }
+    }
 }

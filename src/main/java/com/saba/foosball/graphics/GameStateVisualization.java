@@ -408,4 +408,8 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
 
     }
 
+    public GameState getGameState() {
+        return gameState;
+    }
+
 }

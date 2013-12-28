@@ -3,10 +3,13 @@ package com.saba.foosball;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.saba.foosball.agent.AbstractFoosballAgent;
+import com.saba.foosball.agent.MirrorAgent;
 import com.saba.foosball.graphics.GameStateVisualization;
 import com.saba.foosball.input.FoosballStateReader;
 import com.saba.foosball.input.WebcamFoosballStateReader;
 import com.saba.foosball.model.GameState;
+import com.saba.foosball.output.USBWriter;
 
 public class Foosball {
     private FoosballStateReader stateReader;
@@ -15,6 +18,7 @@ public class Foosball {
     private Map<Integer, Integer> rowToPlayerCountMap = new HashMap<Integer, Integer>();
     private Map<Integer, Integer> rowToPlayerDistanceMap = new HashMap<Integer, Integer>();
     private Map<Integer, Integer> rowToXPositionMap = new HashMap<Integer, Integer>();
+    private AbstractFoosballAgent foosballAgent;
 
     public void start() {
         stateReader.start();
@@ -24,6 +28,11 @@ public class Foosball {
             visualization.start();
             stateUpdater.register(visualization);
         }
+        USBWriter usbWriter = new USBWriter();
+        usbWriter.initialize();
+        foosballAgent.setUsbWriter(usbWriter);
+        foosballAgent.setGameState(gameState);
+        stateUpdater.register(foosballAgent);
         stateUpdater.setGameState(gameState);
         stateUpdater.start();
     }
@@ -51,6 +60,7 @@ public class Foosball {
         foosball.setRowToPlayerCountMap(rowToPlayerCountMap);
         foosball.setRowToPlayerDistanceMap(rowToPlayerDistanceMap);
         foosball.setRowToXPositionMap(rowToXPositionMap);
+        foosball.setFoosballAgent(new MirrorAgent());
         foosball.start();
     }
 
@@ -100,6 +110,14 @@ public class Foosball {
 
     public void setStateReader(FoosballStateReader stateReader) {
         this.stateReader = stateReader;
+    }
+
+    public AbstractFoosballAgent getFoosballAgent() {
+        return foosballAgent;
+    }
+
+    public void setFoosballAgent(AbstractFoosballAgent foosballAgent) {
+        this.foosballAgent = foosballAgent;
     }
 
 }

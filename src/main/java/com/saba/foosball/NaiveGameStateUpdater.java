@@ -30,7 +30,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
             updatePlayerPositions(img);
             updateBallPosition(img);
             notifyListeners();
-            // Prompt user input
+
         }
 
     }

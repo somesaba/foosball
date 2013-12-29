@@ -32,6 +32,7 @@ public class Foosball {
         usbWriter.initialize();
         foosballAgent.setUsbWriter(usbWriter);
         foosballAgent.setGameState(gameState);
+        foosballAgent.start();
         stateUpdater.register(foosballAgent);
         stateUpdater.setGameState(gameState);
         stateUpdater.start();

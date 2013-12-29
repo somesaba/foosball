@@ -4,6 +4,10 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import com.saba.foosball.input.FoosballStateReader;
 import com.saba.foosball.model.GameState;
@@ -17,6 +21,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
     private FoosballStateReader stateReader;
     private List<GameStateListener> listeners = new ArrayList<GameStateListener>();
     private Thread gameStateUpdaterThread;
+    private ExecutorService executor = Executors.newFixedThreadPool(5);
 
     public void start() {
         gameStateUpdaterThread = new Thread(this, "NaiveGameStateUpdaterThread");
@@ -27,12 +32,18 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
         isShutdown = false;
         while (!isShutdown) {
             BufferedImage img = stateReader.readState();
-            updatePlayerPositions(img);
-            updateBallPosition(img);
+            // Start Calculating Ball Positions
+            List<Future<PotentialPositionRectangle>> potentialBallPositions = this.startCalculatingBallPositionsAsync(img);
+            // Update Players positions in current thread
+            this.updatePlayerPositions(img);
+            // Wait for futures and update ball positions if not in end state
+            if (gameState.getPlayerThatScored() == null)
+                this.updateBallPosition(potentialBallPositions);
+            else
+                gameState.updateBallPosition(gameState.getMaxX() / 2, gameState.getMaxY() / 2);
             notifyListeners();
-
+            // Prompt for round re-start
         }
-
     }
 
     private void updatePlayerYPositions(BufferedImage img) {
@@ -61,14 +72,12 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                                 for (int i = 1; i < rectMemberships.size(); i++) {
                                     masterRect.addRectangle(rectMemberships.get(i));
                                 }
-                                potentialPositionRectangles
-                                        .removeAll(rectMemberships.subList(1, rectMemberships.size()));
+                                potentialPositionRectangles.removeAll(rectMemberships.subList(1, rectMemberships.size()));
                             }
                         }
                     } else {
-                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5)
-                                && color.getBlue() >= 20 && color.getBlue() > color.getGreen()
-                                && color.getBlue() > color.getRed()) {
+                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5) && color.getBlue() >= 20
+                                && color.getBlue() > color.getGreen() && color.getBlue() > color.getRed()) {
                             List<PotentialPositionRectangle> rectMemberships = new ArrayList<PotentialPositionRectangle>();
                             for (PotentialPositionRectangle rect : potentialPositionRectangles) {
                                 if (rect.isNearby(x, y, 3)) {
@@ -86,8 +95,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                                 for (int i = 1; i < rectMemberships.size(); i++) {
                                     masterRect.addRectangle(rectMemberships.get(i));
                                 }
-                                potentialPositionRectangles
-                                        .removeAll(rectMemberships.subList(1, rectMemberships.size()));
+                                potentialPositionRectangles.removeAll(rectMemberships.subList(1, rectMemberships.size()));
                             }
 
                         }
@@ -141,8 +149,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                 xStart += 5;
             }
             for (int x = xStart; x < xStart + 12; x++) {
-                for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9,
-                        img.getHeight()); y++) {
+                for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9, img.getHeight()); y++) {
                     Color color = new Color(img.getRGB(x, y));
                     if (row == 1 || row == 3) {
                         if (color.getRed() - color.getGreen() > 20 && color.getRed() - color.getBlue() > 50
@@ -150,9 +157,8 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                             numOfPixelsRight++;
                         }
                     } else {
-                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5)
-                                && color.getBlue() >= 20 && color.getBlue() > color.getGreen()
-                                && color.getBlue() > color.getRed()) {
+                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5) && color.getBlue() >= 20
+                                && color.getBlue() > color.getGreen() && color.getBlue() > color.getRed()) {
                             numOfPixelsRight++;
 
                         }
@@ -165,8 +171,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                 xStart -= 10;
             }
             for (int x = xStart; x < xStart + 12; x++) {
-                for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9,
-                        img.getHeight()); y++) {
+                for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9, img.getHeight()); y++) {
                     Color color = new Color(img.getRGB(x, y));
                     if (row == 1 || row == 3) {
                         if (color.getRed() - color.getGreen() > 20 && color.getRed() - color.getBlue() > 50
@@ -174,9 +179,8 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                             numOfPixelsLeft++;
                         }
                     } else {
-                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5)
-                                && color.getBlue() >= 20 && color.getBlue() > color.getGreen()
-                                && color.getBlue() > color.getRed()) {
+                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5) && color.getBlue() >= 20
+                                && color.getBlue() > color.getGreen() && color.getBlue() > color.getRed()) {
                             numOfPixelsLeft++;
 
                         }
@@ -195,8 +199,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                 // Check next 10 pixels
                 int numOfPixelsFarLeft = 0;
                 for (int x = xStart - 10; x < xStart; x++) {
-                    for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9,
-                            img.getHeight()); y++) {
+                    for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9, img.getHeight()); y++) {
                         Color color = new Color(img.getRGB(x, y));
                         if (row == 1 || row == 3) {
                             if (color.getRed() - color.getGreen() > 20 && color.getRed() - color.getBlue() > 50
@@ -204,9 +207,8 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                                 numOfPixelsFarLeft++;
                             }
                         } else {
-                            if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5)
-                                    && color.getBlue() >= 20 && color.getBlue() > color.getGreen()
-                                    && color.getBlue() > color.getRed()) {
+                            if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5) && color.getBlue() >= 20
+                                    && color.getBlue() > color.getGreen() && color.getBlue() > color.getRed()) {
                                 numOfPixelsFarLeft++;
 
                             }
@@ -231,8 +233,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                 }
                 int numOfPixelsFarRight = 0;
                 for (int x = xStart + 12; x < xStart + 22; x++) {
-                    for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9,
-                            img.getHeight()); y++) {
+                    for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9, img.getHeight()); y++) {
                         Color color = new Color(img.getRGB(x, y));
                         if (row == 1 || row == 3) {
                             if (color.getRed() - color.getGreen() > 20 && color.getRed() - color.getBlue() > 50
@@ -240,9 +241,8 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                                 numOfPixelsFarRight++;
                             }
                         } else {
-                            if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5)
-                                    && color.getBlue() >= 20 && color.getBlue() > color.getGreen()
-                                    && color.getBlue() > color.getRed()) {
+                            if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5) && color.getBlue() >= 20
+                                    && color.getBlue() > color.getGreen() && color.getBlue() > color.getRed()) {
                                 numOfPixelsFarRight++;
                             }
                         }
@@ -257,6 +257,124 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
             }
 
         }
+    }
+
+    private List<Future<PotentialPositionRectangle>> startCalculatingBallPositionsAsync(BufferedImage img) {
+        List<Future<PotentialPositionRectangle>> potentialBallPositions = new ArrayList<Future<PotentialPositionRectangle>>(5);
+        int lastXEnd = 0;
+        for (int row = 0; row < gameState.getNumOfRows(); row++) {
+            int midPoint = gameState.getRowXPosition(row);
+            potentialBallPositions.add(executor.submit(new BallPositionCallable(img, lastXEnd, midPoint)));
+        }
+        potentialBallPositions.add(executor.submit(new BallPositionCallable(img, lastXEnd, img.getWidth())));
+        return potentialBallPositions;
+    }
+
+    private void updateBallPosition(List<Future<PotentialPositionRectangle>> potentialBallPositions) {
+        List<PotentialPositionRectangle> potentialBallPositionRectangles = new ArrayList<PotentialPositionRectangle>(5);
+        for (Future<PotentialPositionRectangle> potentialRectFuture : potentialBallPositions) {
+            try {
+                PotentialPositionRectangle rect = potentialRectFuture.get();
+                if (rect != null) {
+                    potentialBallPositionRectangles.add(rect);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        // Get the rectangle that is closest to a 25x25 square
+        int ballXPosition = gameState.getBallXPosition();
+        int ballYPosition = gameState.getBallYPosition();
+        double bestScore = Double.MAX_VALUE;
+        for (PotentialPositionRectangle rect : potentialBallPositionRectangles) {
+            int xEnd = rect.getxEnd() >= gameState.getMaxX() ? gameState.getMaxX() - 1 : rect.getxEnd();
+            int xStart = rect.getxStart() < 0 ? 0 : rect.getxStart();
+            int yEnd = rect.getyEnd() >= gameState.getMaxY() ? gameState.getMaxY() - 1 : rect.getyEnd();
+            int yStart = rect.getyStart() < 0 ? 0 : rect.getyStart();
+            int xPosition = xStart + (xEnd - xStart) / 2;
+            int yPosition = yStart + (yEnd - yStart) / 2;
+            // Score = distance from perfect 22x22 square and distance from last ball position
+            double score = Math.sqrt(Math.pow(22 - rect.getXLen(), 2) + Math.pow(22 - rect.getYLen(), 2))
+                    + (Math.sqrt(Math.pow(gameState.getBallXPosition() - xPosition, 2) + Math.pow(gameState.getBallYPosition() - yPosition, 2))) / 3;
+            if (score < bestScore) {
+                bestScore = score;
+                ballXPosition = xPosition;
+                ballYPosition = yPosition;
+            }
+        }
+        // System.out.println("Best Rec Size=" + (xEnd - xStart) + "," + (yEnd - yStart) + "\t dist=" + bestScore);
+        gameState.updateBallPosition(ballXPosition, ballYPosition);
+        if (ballXPosition < 10) {
+            gameState.setScoringPlayer(Player.SELF);
+        }
+        if (ballXPosition > 295) {
+            gameState.setScoringPlayer(Player.ENEMY);
+        }
+    }
+
+    private class BallPositionCallable implements Callable<PotentialPositionRectangle> {
+
+        private BufferedImage img;
+        private int xStart;
+        private int xEnd;
+
+        public BallPositionCallable(BufferedImage img, int xStart, int xEnd) {
+            super();
+            this.img = img;
+            this.xStart = xStart;
+            this.xEnd = xEnd;
+        }
+
+        public PotentialPositionRectangle call() throws Exception {
+            List<PotentialPositionRectangle> potentialBallPositionRectangles = new ArrayList<PotentialPositionRectangle>();
+            for (int x = xStart; x < xEnd; x++) {
+                for (int y = 0; y < img.getHeight(); y++) {
+                    Color color = new Color(img.getRGB(x, y));
+                    if (color.getRed() > 200 && color.getGreen() > 200 && color.getBlue() > 200) {
+                        List<PotentialPositionRectangle> rectMemberships = new ArrayList<PotentialPositionRectangle>();
+                        for (PotentialPositionRectangle rect : potentialBallPositionRectangles) {
+                            if (rect.isPotentialMember(x, y)) {
+                                rectMemberships.add(rect);
+                                rect.addMember(x, y);
+                            }
+                        }
+                        if (rectMemberships.size() == 0) {
+                            PotentialPositionRectangle rect = new PotentialPositionRectangle(x, y);
+                            potentialBallPositionRectangles.add(rect);
+                            rectMemberships.add(rect);
+                        }
+                        if (rectMemberships.size() > 1) {
+                            PotentialPositionRectangle masterRect = rectMemberships.get(0);
+                            for (int i = 1; i < rectMemberships.size(); i++) {
+                                masterRect.addRectangle(rectMemberships.get(i));
+                            }
+                            potentialBallPositionRectangles.removeAll(rectMemberships.subList(1, rectMemberships.size()));
+                        }
+                    }
+                }
+            }
+            // Get the rectangle that is closest to a 25x25 square
+            double bestScore = Double.MAX_VALUE;
+            PotentialPositionRectangle bestRect = null;
+            for (PotentialPositionRectangle rect : potentialBallPositionRectangles) {
+                int xEnd = rect.getxEnd() >= gameState.getMaxX() ? gameState.getMaxX() - 1 : rect.getxEnd();
+                int xStart = rect.getxStart() < 0 ? 0 : rect.getxStart();
+                int yEnd = rect.getyEnd() >= gameState.getMaxY() ? gameState.getMaxY() - 1 : rect.getyEnd();
+                int yStart = rect.getyStart() < 0 ? 0 : rect.getyStart();
+                int xPosition = xStart + (xEnd - xStart) / 2;
+                int yPosition = yStart + (yEnd - yStart) / 2;
+                // Score = distance from perfect 22x22 square and distance from last ball position
+                double score = Math.sqrt(Math.pow(22 - rect.getXLen(), 2) + Math.pow(22 - rect.getYLen(), 2))
+                        + (Math.sqrt(Math.pow(gameState.getBallXPosition() - xPosition, 2) + Math.pow(gameState.getBallYPosition() - yPosition, 2)))
+                        / 3;
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestRect = rect;
+                }
+            }
+            return bestRect;
+        }
+
     }
 
     private void updateBallPosition(BufferedImage img) {
@@ -304,8 +422,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
             int yPosition = yStart + (yEnd - yStart) / 2;
             // Score = distance from perfect 22x22 square and distance from last ball position
             double score = Math.sqrt(Math.pow(22 - rect.getXLen(), 2) + Math.pow(22 - rect.getYLen(), 2))
-                    + (Math.sqrt(Math.pow(gameState.getBallXPosition() - xPosition, 2)
-                            + Math.pow(gameState.getBallYPosition() - yPosition, 2))) / 3;
+                    + (Math.sqrt(Math.pow(gameState.getBallXPosition() - xPosition, 2) + Math.pow(gameState.getBallYPosition() - yPosition, 2))) / 3;
             if (score < bestScore) {
                 bestScore = score;
                 ballXPosition = xPosition;

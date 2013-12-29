@@ -21,7 +21,6 @@ import javax.swing.JPanel;
 import com.saba.foosball.GameStateListener;
 import com.saba.foosball.input.FoosballStateReader;
 import com.saba.foosball.model.GameState;
-import com.saba.foosball.model.Player;
 import com.saba.foosball.model.PlayerAngle;
 import com.saba.foosball.model.PotentialPositionRectangle;
 
@@ -96,11 +95,12 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
         while (!isShutdown) {
             if (didGameStateChange.compareAndSet(true, false)) {
                 this.refreshGraphics();
-            }
-            try {
-                Thread.sleep(10);
-            } catch (Exception e) {
-                e.printStackTrace();
+            } else {
+                try {
+                    Thread.sleep(10);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -162,14 +162,12 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
                                 for (int i = 1; i < rectMemberships.size(); i++) {
                                     masterRect.addRectangle(rectMemberships.get(i));
                                 }
-                                potentialPositionRectangles
-                                        .removeAll(rectMemberships.subList(1, rectMemberships.size()));
+                                potentialPositionRectangles.removeAll(rectMemberships.subList(1, rectMemberships.size()));
                             }
                         }
                     } else {
-                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5)
-                                && color.getBlue() >= 10 && color.getBlue() > color.getGreen()
-                                && color.getBlue() > color.getRed()) {
+                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5) && color.getBlue() >= 10
+                                && color.getBlue() > color.getGreen() && color.getBlue() > color.getRed()) {
                             // graphics.fillRect(x + xBounds / 2, y, 1, 1);
                             List<PotentialPositionRectangle> rectMemberships = new ArrayList<PotentialPositionRectangle>();
                             for (PotentialPositionRectangle rect : potentialPositionRectangles) {
@@ -188,8 +186,7 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
                                 for (int i = 1; i < rectMemberships.size(); i++) {
                                     masterRect.addRectangle(rectMemberships.get(i));
                                 }
-                                potentialPositionRectangles
-                                        .removeAll(rectMemberships.subList(1, rectMemberships.size()));
+                                potentialPositionRectangles.removeAll(rectMemberships.subList(1, rectMemberships.size()));
                             }
                         }
                     }
@@ -198,8 +195,8 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
             List<PotentialPositionRectangle> noisyMemberships = new ArrayList<PotentialPositionRectangle>();
 
             for (PotentialPositionRectangle rect : potentialPositionRectangles) {
-                graphics.drawRect(rect.getxStart() + xBounds / 2, rect.getyStart(),
-                        (rect.getxEnd() - rect.getxStart()), rect.getyEnd() - rect.getyStart());
+                graphics.drawRect(rect.getxStart() + xBounds / 2, rect.getyStart(), (rect.getxEnd() - rect.getxStart()),
+                        rect.getyEnd() - rect.getyStart());
                 int yEnd = rect.getyEnd() >= gameState.getMaxY() ? gameState.getMaxY() - 1 : rect.getyEnd();
                 int yStart = rect.getyStart() < 0 ? 0 : rect.getyStart();
                 if (yEnd - yStart < 20) {
@@ -243,8 +240,7 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
             }
             graphics.drawRect(xStart + xBounds / 2, gameState.getRowYPosition(row) - 15, 12, 24);
             for (int x = xStart; x < xStart + 12; x++) {
-                for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9,
-                        img.getHeight()); y++) {
+                for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9, img.getHeight()); y++) {
                     Color color = new Color(img.getRGB(x, y));
                     if (row == 1 || row == 3) {
                         if (color.getRed() - color.getGreen() > 20 && color.getRed() - color.getBlue() > 50
@@ -252,9 +248,8 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
                             graphics.fillRect(x + xBounds / 2, y, 1, 1);
                         }
                     } else {
-                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5)
-                                && color.getBlue() >= 20 && color.getBlue() > color.getGreen()
-                                && color.getBlue() > color.getRed()) {
+                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5) && color.getBlue() >= 20
+                                && color.getBlue() > color.getGreen() && color.getBlue() > color.getRed()) {
                             graphics.fillRect(x + xBounds / 2, y, 1, 1);
 
                         }
@@ -268,8 +263,7 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
             }
             graphics.drawRect(xStart + xBounds / 2, gameState.getRowYPosition(row) - 15, 12, 24);
             for (int x = xStart; x < xStart + 12; x++) {
-                for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9,
-                        img.getHeight()); y++) {
+                for (int y = gameState.getRowYPosition(row) - 15; y < Math.min(gameState.getRowYPosition(row) + 9, img.getHeight()); y++) {
                     Color color = new Color(img.getRGB(x, y));
                     if (row == 1 || row == 3) {
                         if (color.getRed() - color.getGreen() > 20 && color.getRed() - color.getBlue() > 50
@@ -277,9 +271,8 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
                             graphics.fillRect(x + xBounds / 2, y, 1, 1);
                         }
                     } else {
-                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5)
-                                && color.getBlue() >= 20 && color.getBlue() > color.getGreen()
-                                && color.getBlue() > color.getRed()) {
+                        if ((color.getGreen() - color.getRed() <= 5 || color.getGreen() - color.getRed() >= 5) && color.getBlue() >= 20
+                                && color.getBlue() > color.getGreen() && color.getBlue() > color.getRed()) {
                             graphics.fillRect(x + xBounds / 2, y, 1, 1);
 
                         }
@@ -291,11 +284,6 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
     }
 
     private void paintBall(Graphics2D graphics) {
-        Player playerThatScored = gameState.getPlayerThatScored();
-        if (playerThatScored != null) {
-            System.out.println("GOAL " + playerThatScored);
-            return;
-        }
         Point ballPosition = gameState.getBallPosition();
         Shape circle = new Ellipse2D.Double(ballPosition.getX() - 10, ballPosition.getY() - 10, 20, 20);
         graphics.setColor(Color.WHITE);
@@ -307,8 +295,8 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
             diffX *= 5;
             diffY *= 5;
             graphics.setColor(Color.BLACK);
-            graphics.drawLine((int) ballPosition.getX(), (int) ballPosition.getY(), (int) ballPosition.getX() + diffX,
-                    (int) ballPosition.getY() + diffY);
+            graphics.drawLine((int) ballPosition.getX(), (int) ballPosition.getY(), (int) ballPosition.getX() + diffX, (int) ballPosition.getY()
+                    + diffY);
         }
     }
 
@@ -340,8 +328,7 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
             int yPosition = (gameState.getRowYPosition(row));
             int xPosition = (gameState.getRowXPosition(row)) + xOffset - 5;
             for (int player = 0; player < gameState.getNumbersOfPlayersForRow(row); player++) {
-                graphics.fillRect(xPosition, yPosition - 10 - player * gameState.getDistanceBetweenPlayersForRow(row),
-                        xLen, 20);
+                graphics.fillRect(xPosition, yPosition - 10 - player * gameState.getDistanceBetweenPlayersForRow(row), xLen, 20);
             }
         }
     }
@@ -384,8 +371,7 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
     public void mouseClicked(MouseEvent e) {
         BufferedImage img = stateReader.readState();
         Color color = new Color(img.getRGB(e.getX() - xBounds / 2, e.getY()));
-        System.out.println("R=" + color.getRed() + " G=" + color.getGreen() + " B=" + color.getBlue() + "Position="
-                + e.getPoint());
+        System.out.println("R=" + color.getRed() + " G=" + color.getGreen() + " B=" + color.getBlue() + "Position=" + e.getPoint());
     }
 
     public void mouseEntered(MouseEvent e) {

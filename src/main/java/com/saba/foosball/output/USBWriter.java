@@ -49,13 +49,12 @@ public class USBWriter {
             serialPort = (SerialPort) portId.open(this.getClass().getName(), TIME_OUT);
 
             // set port parameters
-            serialPort.setSerialPortParams(DATA_RATE, SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
-                    SerialPort.PARITY_NONE);
+            serialPort.setSerialPortParams(DATA_RATE, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
             // open the stream
             output = serialPort.getOutputStream();
-            (new Thread(new SerialReader(serialPort.getInputStream()))).start();
-
+            // (new Thread(new SerialReader(serialPort.getInputStream()))).start();
+            output.write(new byte[] { (byte) 225 });
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -88,12 +87,12 @@ public class USBWriter {
                 } else if (intendedAngle == PlayerAngle.FORWARD_HORIZONTAL) {
                     angleByte = (byte) 0xB4;
                 }
-                if (controllablePlayerRow == 0)
-                    System.out.println("Row=" + controllablePlayerRow + "; y=" + yPosition + "; unfactored="
-                            + (intendedYPositions.get(controllablePlayerRow)));
-                else
-                    System.out.println("Row=" + controllablePlayerRow + "; y=" + yPosition + "; unfactored="
-                            + (intendedYPositions.get(controllablePlayerRow)));
+                // if (controllablePlayerRow == 0)
+                // System.out.println("Row=" + controllablePlayerRow + "; y=" + yPosition + "; unfactored="
+                // + (intendedYPositions.get(controllablePlayerRow)));
+                // else
+                // System.out.println("Row=" + controllablePlayerRow + "; y=" + yPosition + "; unfactored="
+                // + (intendedYPositions.get(controllablePlayerRow)));
                 buf.put(yPosition);
                 buf.put(angleByte);
             }
@@ -101,7 +100,6 @@ public class USBWriter {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     /** */

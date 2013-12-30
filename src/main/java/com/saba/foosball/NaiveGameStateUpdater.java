@@ -37,12 +37,12 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
             // Update Players positions in current thread
             this.updatePlayerPositions(img);
             // Wait for futures and update ball positions if not in end state
-            if (gameState.getPlayerThatScored() == null)
-                this.updateBallPosition(potentialBallPositions);
-            else
+            this.updateBallPosition(potentialBallPositions);
+
+            if (gameState.getPlayerThatScored() != null)
                 gameState.updateBallPosition(gameState.getMaxX() / 2, gameState.getMaxY() / 2);
+
             notifyListeners();
-            // Prompt for round re-start
         }
     }
 
@@ -304,7 +304,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
         }
         // System.out.println("Best Rec Size=" + (xEnd - xStart) + "," + (yEnd - yStart) + "\t dist=" + bestScore);
         gameState.updateBallPosition(ballXPosition, ballYPosition);
-        if (ballXPosition < 10) {
+        if (ballXPosition < 20) {
             gameState.setScoringPlayer(Player.SELF);
         }
         if (ballXPosition > 295) {

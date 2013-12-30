@@ -8,7 +8,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 
 import com.saba.foosball.model.PlayerAngle;
@@ -54,7 +53,7 @@ public class USBWriter {
             // open the stream
             output = serialPort.getOutputStream();
             // (new Thread(new SerialReader(serialPort.getInputStream()))).start();
-            output.write(new byte[] { (byte) 225 });
+            output.write(new byte[] { (byte) 255 });
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -71,8 +70,8 @@ public class USBWriter {
                 else
                     yPosition = (byte) ((223 - intendedYPositions.get(controllablePlayerRow)) * yPositionToByteFactor);
 
-                if (yPosition > 40)
-                    yPosition = 40;
+                if (yPosition > 42)
+                    yPosition = 42;
                 if (yPosition < 0)
                     yPosition = 0;
                 yPosition += rowYPosisitionOffset.get(controllablePlayerRow);
@@ -95,6 +94,33 @@ public class USBWriter {
                 // + (intendedYPositions.get(controllablePlayerRow)));
                 buf.put(yPosition);
                 buf.put(angleByte);
+            }
+            output.write(buf.array());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setHardPlayerPositions(List<Integer> intendedYPositions, List<PlayerAngle> intendedPlayerAngles) {
+        // Map integers to bytes
+        try {
+            ByteBuffer buf = ByteBuffer.allocate(intendedPlayerAngles.size() * 2);
+            for (int controllablePlayerRow = 0; controllablePlayerRow < intendedPlayerAngles.size(); controllablePlayerRow++) {
+                PlayerAngle intendedAngle = intendedPlayerAngles.get(controllablePlayerRow);
+                byte angleByte = (byte) 90;
+                if (intendedAngle == PlayerAngle.BACKWARD_ANGLED) {
+                    angleByte = (byte) 45;
+                } else if (intendedAngle == PlayerAngle.BACKWARD_HORIZONTAL) {
+                    angleByte = (byte) 0;
+                } else if (intendedAngle == PlayerAngle.FORWARD_ANGLED) {
+                    angleByte = (byte) 0x87;
+                } else if (intendedAngle == PlayerAngle.FORWARD_HORIZONTAL) {
+                    angleByte = (byte) 0xB4;
+                }
+                byte yPos = (byte) (intendedYPositions.get(controllablePlayerRow) + rowYPosisitionOffset.get(controllablePlayerRow));
+                buf.put(yPos);
+                buf.put(angleByte);
+                // System.out.println("YPos=" + yPos);
             }
             output.write(buf.array());
         } catch (IOException e) {
@@ -130,15 +156,6 @@ public class USBWriter {
         if (serialPort != null) {
             serialPort.removeEventListener();
             serialPort.close();
-        }
-    }
-
-    public static void main(String[] args) {
-        Enumeration ports = CommPortIdentifier.getPortIdentifiers();
-        System.out.println("PRTS:" + ports.toString());
-        while (ports.hasMoreElements()) {
-            CommPortIdentifier currPortId = (CommPortIdentifier) ports.nextElement();
-            System.out.println("PRT" + currPortId.getName());
         }
     }
 }

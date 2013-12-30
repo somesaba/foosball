@@ -1,8 +1,8 @@
 package com.saba.foosball.agent;
 
+import java.awt.Toolkit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 import com.saba.foosball.model.PlayerAngle;
 
@@ -31,10 +31,17 @@ public class MirrorAgent extends AbstractFoosballAgent {
             usbWriter.setPlayerPositions(intendedYPositions, intendedPlayerAngles);
             // Prompt User For New Round
             System.out.println("GOAL " + gameState.getPlayerThatScored());
-            Scanner reader = new Scanner(System.in);
-            System.out.println("Place the ball in the center and hit any key!");
-            reader.next();
-            reader.close();
+            System.out.print("Round Restarts in...");
+            for (int i = 10; i > 0; i--) {
+                System.out.print(i + "..");
+                try {
+                    Toolkit.getDefaultToolkit().beep();
+                    Thread.sleep(1000);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            System.out.println("0");
             gameState.restartRound();
         }
     }

@@ -35,9 +35,8 @@ public class GameState {
 
     private volatile Player playerThatScored = null;
 
-    public GameState(int maxX, int maxY, Map<Integer, Integer> rowToPlayerCountMap,
-            Map<Integer, Integer> rowToPlayerDistanceMap, Map<Integer, Integer> rowToXPositionMap)
-            throws IllegalArgumentException {
+    public GameState(int maxX, int maxY, Map<Integer, Integer> rowToPlayerCountMap, Map<Integer, Integer> rowToPlayerDistanceMap,
+            Map<Integer, Integer> rowToXPositionMap) throws IllegalArgumentException {
         this.xLength = maxX;
         this.yLength = maxY;
         this.rowToPlayerCountMap = rowToPlayerCountMap;
@@ -57,10 +56,8 @@ public class GameState {
         }
 
         // row maps must have same num of rows
-        if (rowToPlayerCountMap.size() != rowToXPositionMap.size()
-                || rowToPlayerCountMap.size() != rowToPlayerDistanceMap.size()) {
-            throw new IllegalArgumentException(
-                    "rowToPlayerCountMap.size() must equal rowToXPositionMap.size() and rowToPlayerDistanceMap.size()");
+        if (rowToPlayerCountMap.size() != rowToXPositionMap.size() || rowToPlayerCountMap.size() != rowToPlayerDistanceMap.size()) {
+            throw new IllegalArgumentException("rowToPlayerCountMap.size() must equal rowToXPositionMap.size() and rowToPlayerDistanceMap.size()");
         }
 
         // x positions cannot be > maxX
@@ -106,9 +103,6 @@ public class GameState {
     }
 
     public void restartRound() {
-        // Init ball to the center
-        this.ballXPosition = xLength / 2;
-        this.ballYPosition = yLength / 2;
         playerThatScored = null;
     }
 

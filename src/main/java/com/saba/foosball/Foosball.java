@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.saba.foosball.agent.AbstractFoosballAgent;
-import com.saba.foosball.agent.MirrorAgent;
+import com.saba.foosball.agent.ApproximateQLearningAgent;
 import com.saba.foosball.graphics.GameStateVisualization;
 import com.saba.foosball.input.FoosballStateReader;
 import com.saba.foosball.input.WebcamFoosballStateReader;
@@ -61,7 +61,8 @@ public class Foosball {
         foosball.setRowToPlayerCountMap(rowToPlayerCountMap);
         foosball.setRowToPlayerDistanceMap(rowToPlayerDistanceMap);
         foosball.setRowToXPositionMap(rowToXPositionMap);
-        foosball.setFoosballAgent(new MirrorAgent());
+        // foosball.setFoosballAgent(new MirrorAgent());
+        foosball.setFoosballAgent(new ApproximateQLearningAgent());
         foosball.start();
     }
 

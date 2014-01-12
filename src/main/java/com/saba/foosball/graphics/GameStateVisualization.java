@@ -171,7 +171,7 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
                             // graphics.fillRect(x + xBounds / 2, y, 1, 1);
                             List<PotentialPositionRectangle> rectMemberships = new ArrayList<PotentialPositionRectangle>();
                             for (PotentialPositionRectangle rect : potentialPositionRectangles) {
-                                if (rect.isNearby(x, y, 3)) {
+                                if (rect.isWithin(x, y, 3)) {
                                     rectMemberships.add(rect);
                                     rect.addMember(x, y);
                                 }

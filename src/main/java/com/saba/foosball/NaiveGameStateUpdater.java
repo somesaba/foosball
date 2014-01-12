@@ -80,7 +80,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                                 && color.getBlue() > color.getGreen() && color.getBlue() > color.getRed()) {
                             List<PotentialPositionRectangle> rectMemberships = new ArrayList<PotentialPositionRectangle>();
                             for (PotentialPositionRectangle rect : potentialPositionRectangles) {
-                                if (rect.isNearby(x, y, 3)) {
+                                if (rect.isWithin(x, y, 3)) {
                                     rectMemberships.add(rect);
                                     rect.addMember(x, y);
                                 }
@@ -113,10 +113,10 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
             }
             potentialPositionRectangles.removeAll(noisyMemberships);
             PotentialPositionRectangle bestRect = null;
-            double bestScore = Double.MIN_VALUE;
+            double bestScore = Double.MAX_VALUE;
             for (PotentialPositionRectangle rect : potentialPositionRectangles) {
-                double score = rect.getyStart();
-                if (score > bestScore) {
+                double score = Math.abs(gameState.getRowYPosition(row) - rect.getyStart());
+                if (score < bestScore) {
                     bestScore = score;
                     bestRect = rect;
                 }

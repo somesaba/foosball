@@ -80,11 +80,11 @@ public class USBWriter {
                 if (intendedAngle == PlayerAngle.BACKWARD_ANGLED) {
                     angleByte = (byte) 45;
                 } else if (intendedAngle == PlayerAngle.BACKWARD_HORIZONTAL) {
-                    angleByte = (byte) 0;
+                    angleByte = (byte) 10;
                 } else if (intendedAngle == PlayerAngle.FORWARD_ANGLED) {
-                    angleByte = (byte) 0x87;
+                    angleByte = (byte) 135;
                 } else if (intendedAngle == PlayerAngle.FORWARD_HORIZONTAL) {
-                    angleByte = (byte) 0xB4;
+                    angleByte = (byte) 170;
                 }
                 // if (controllablePlayerRow == 0)
                 // System.out.println("Row=" + controllablePlayerRow + "; y=" + yPosition + "; unfactored="
@@ -109,18 +109,18 @@ public class USBWriter {
                 PlayerAngle intendedAngle = intendedPlayerAngles.get(controllablePlayerRow);
                 byte angleByte = (byte) 90;
                 if (intendedAngle == PlayerAngle.BACKWARD_ANGLED) {
-                    angleByte = (byte) 45;
+                    angleByte = (byte) 40;
                 } else if (intendedAngle == PlayerAngle.BACKWARD_HORIZONTAL) {
-                    angleByte = (byte) 0;
+                    angleByte = (byte) 10;
                 } else if (intendedAngle == PlayerAngle.FORWARD_ANGLED) {
-                    angleByte = (byte) 0x87;
+                    angleByte = (byte) 145;
                 } else if (intendedAngle == PlayerAngle.FORWARD_HORIZONTAL) {
-                    angleByte = (byte) 0xB4;
+                    angleByte = (byte) 170;
                 }
                 byte yPos = (byte) (intendedYPositions.get(controllablePlayerRow) + rowYPosisitionOffset.get(controllablePlayerRow));
                 buf.put(yPos);
                 buf.put(angleByte);
-                // System.out.println("YPos=" + yPos);
+                System.out.println("YPos=" + yPos);
             }
             output.write(buf.array());
         } catch (IOException e) {

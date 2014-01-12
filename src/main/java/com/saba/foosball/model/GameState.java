@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * 
@@ -16,22 +17,25 @@ import java.util.concurrent.ConcurrentHashMap;
  *         This game state updates are thread-safe to a degree (enough for our purposes)
  */
 public class GameState {
+    // Static Game State Properties
     // The number of discrete points in the x-axis, perpendicular to the players
-    private final Integer xLength;
+    private final int xLength;
     // The number of discrete points in the y-axis, parallel to the players
-    private final Integer yLength;
+    private final int yLength;
     // A Map of the number of the players each row of players has, row 0 is your goalie
     private final Map<Integer, Integer> rowToPlayerCountMap;
     // A Map of the distance between players each row of players, row 0 is your goalie
     private final Map<Integer, Integer> rowToPlayerDistanceMap;
     // A Map of the fixed x-position of the players for each row, row 0 is your goalie
     private final Map<Integer, Integer> rowToXPositionMap;
+
+    // Dynamic Game State Properties
     private volatile int prevBallXPosition;
     private volatile int prevBallYPosition;
     private volatile int ballXPosition;
     private volatile int ballYPosition;
-    private volatile Map<Integer, Integer> rowToYPositionMap;
-    private volatile Map<Integer, PlayerAngle> rowToAngleMap;
+    private final ConcurrentMap<Integer, Integer> rowToYPositionMap;
+    private final ConcurrentMap<Integer, PlayerAngle> rowToAngleMap;
 
     private volatile Player playerThatScored = null;
 

@@ -17,15 +17,13 @@ public class PotentialPositionRectangle {
         return x >= xStart && y >= yStart && x <= xEnd && y <= yEnd;
     }
 
-    public boolean isNearby(int x, int y, int within) {
+    public boolean isWithin(int x, int y, int within) {
         return x >= xStart - within && y >= yStart - within && x <= xEnd + within && y <= yEnd + within;
     }
 
     public boolean doesCollide(PotentialPositionRectangle rect) {
-        return this.isPotentialMember(rect.getxStart(), rect.getyStart())
-                || this.isPotentialMember(rect.getxStart(), rect.getyEnd())
-                || this.isPotentialMember(rect.getxEnd(), rect.getyStart())
-                || this.isPotentialMember(rect.getxEnd(), rect.getyEnd());
+        return this.isPotentialMember(rect.getxStart(), rect.getyStart()) || this.isPotentialMember(rect.getxStart(), rect.getyEnd())
+                || this.isPotentialMember(rect.getxEnd(), rect.getyStart()) || this.isPotentialMember(rect.getxEnd(), rect.getyEnd());
     }
 
     public boolean isWithin(PotentialPositionRectangle rect, int within) {

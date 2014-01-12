@@ -17,4 +17,12 @@ public enum PlayerAngle {
     public static PlayerAngle getRandomAngle() {
         return PlayerAngle.values()[(int) (Math.random() * 5)];
     }
+
+    public static PlayerAngle[] getLimitedValues() {
+        return new PlayerAngle[] { FORWARD_ANGLED, VERTICAL, BACKWARD_ANGLED };
+    }
+
+    public static PlayerAngle getRandomLimitedAngle() {
+        return PlayerAngle.getLimitedValues()[(int) (Math.random() * 3)];
+    }
 }

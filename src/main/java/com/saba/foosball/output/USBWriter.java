@@ -120,7 +120,7 @@ public class USBWriter {
                 byte yPos = (byte) (intendedYPositions.get(controllablePlayerRow) + rowYPosisitionOffset.get(controllablePlayerRow));
                 buf.put(yPos);
                 buf.put(angleByte);
-                System.out.println("YPos=" + yPos);
+                // System.out.println("YPos=" + yPos);
             }
             output.write(buf.array());
         } catch (IOException e) {

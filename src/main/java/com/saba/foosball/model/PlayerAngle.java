@@ -25,4 +25,5 @@ public enum PlayerAngle {
     public static PlayerAngle getRandomLimitedAngle() {
         return PlayerAngle.getLimitedValues()[(int) (Math.random() * 3)];
     }
+
 }

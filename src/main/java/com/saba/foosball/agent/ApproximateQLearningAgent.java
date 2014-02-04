@@ -19,22 +19,21 @@ import com.saba.foosball.model.PlayerAngle;
 public class ApproximateQLearningAgent extends AbstractFoosballAgent {
     private static final double yPositionToByteFactor = 40d / 75d;
     private ExecutorService executor = Executors.newFixedThreadPool(PlayerAngle.getLimitedValues().length);
-    private List<Float> featureWeights = new ArrayList<Float>(Arrays.asList(new Float[] { 1f, 5f, 5f }));
+    private List<Float> featureWeights = new ArrayList<Float>(Arrays.asList(new Float[] { 1f, 6f, 6f, 5f, .5f }));
     // Learning Rate
     private float alpha = .3f;
     // Percent Chance for Random Action
-    private float epsilon = .1f;
+    private float epsilon = .05f;
     // Discount Factor
     private float gamma = .9f;
 
     // Previous Data
     private float prevQVal = 0;
-    private List<Float> prevFeatureVals = new ArrayList<Float>(Arrays.asList(new Float[] { 0f, 0f, 0f }));
+    private List<Float> prevFeatureVals = new ArrayList<Float>(Arrays.asList(new Float[] { 0f, 0f, 0f, 0f, 0f }));
 
-    // GameStateData - We need to store this data because it is volatile and the gameStateUpdater may change it any
-    // time. We need
-    private DynamicGameState currentDynamicGameState;
-    private DynamicGameState previousDynamicGameState;
+    private DynamicGameState previousGameState;
+    private List<Integer> previousIntendedYPositions;
+    private List<PlayerAngle> previousIntendedPlayerAngles;
 
     public void performAction() {
         // this.updateWeights();
@@ -71,8 +70,11 @@ public class ApproximateQLearningAgent extends AbstractFoosballAgent {
         }
         prevFeatureVals = featureVals;
         prevQVal = qVal;
-        System.out.println("ACTION Random Feature Vals=" + featureVals + "\t Weights" + this.featureWeights);
+        // System.out.println("ACTION Random Feature Vals=" + featureVals + "\t Weights" + this.featureWeights);
         usbWriter.setHardPlayerPositions(intendedYPositions, intendedPlayerAngles);
+        previousIntendedYPositions = intendedYPositions;
+        previousIntendedPlayerAngles = intendedPlayerAngles;
+        previousGameState = new DynamicGameState(gameState);
     }
 
     private void takeBestAction() {
@@ -126,45 +128,46 @@ public class ApproximateQLearningAgent extends AbstractFoosballAgent {
         int randomIndex = (int) (bestActions.size() * Math.random());
         prevFeatureVals = bestFeatureVals.get(randomIndex);
         prevQVal = maxQVal;
-        System.out.println("ACTION Best of size=" + bestActions.size() + " Feature Vals=" + prevFeatureVals + "\t Weights" + this.featureWeights);
+        // System.out.println("ACTION Best of size=" + bestActions.size() + " Feature Vals=" + prevFeatureVals +
+        // "\t Weights" + this.featureWeights);
         usbWriter
                 .setHardPlayerPositions(bestActions.get(randomIndex).getIntendedYPositions(), bestActions.get(randomIndex).getIntendedPlayerAngles());
+        previousIntendedYPositions = bestActions.get(randomIndex).getIntendedYPositions();
+        previousIntendedPlayerAngles = bestActions.get(randomIndex).getIntendedPlayerAngles();
+        previousGameState = new DynamicGameState(gameState);
     }
 
     private void updateWeights() {
-        if (gameState.getPlayerThatScored() == null) {
-            float maxQVal = -Float.MAX_VALUE;
-            List<Future<Float>> futureQValues = new ArrayList<Future<Float>>(3);
-            for (PlayerAngle playerAngle : PlayerAngle.getLimitedValues()) {
-                futureQValues.add(executor.submit(new QValueCalculator(playerAngle)));
-            }
-            for (Future<Float> futureQValue : futureQValues) {
-                Float qVal = -Float.MAX_VALUE;
-                try {
-                    qVal = futureQValue.get();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                if (qVal > maxQVal) {
-                    maxQVal = qVal;
-                }
-            }
-            float diff = this.getRewardForCurrentState() + gamma * maxQVal - prevQVal;
-            System.out.println("UPDATE WEIGHTS diff=" + diff + "\tbestQVal=" + maxQVal + "\tprevQ" + prevQVal + "\tprevFeatures=" + prevFeatureVals);
-            for (int i = 0; i < featureWeights.size(); i++) {
-                featureWeights.set(i, featureWeights.get(i) + alpha * diff * prevFeatureVals.get(i));
-            }
-            System.out.println("UPDATE WEIGHTS New Weights=" + featureWeights);
-        } else {
-            // float diff = this.getRewardForCurrentState() - prevQVal;
-            // for (int i = 0; i < featureWeights.size(); i++) {
-            // featureWeights.set(i, featureWeights.get(i) + alpha * diff * prevFeatureVals.get(i));
-            // }
+        if (previousGameState == null || gameState.getPlayerThatScored() != null) {
+            // Don't update weights on first pass or if game is over
+            return;
         }
+        float maxQVal = -Float.MAX_VALUE;
+        List<Future<Float>> futureQValues = new ArrayList<Future<Float>>(3);
+        for (PlayerAngle playerAngle : PlayerAngle.getLimitedValues()) {
+            futureQValues.add(executor.submit(new QValueCalculator(playerAngle)));
+        }
+        for (Future<Float> futureQValue : futureQValues) {
+            Float qVal = -Float.MAX_VALUE;
+            try {
+                qVal = futureQValue.get();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (qVal > maxQVal) {
+                maxQVal = qVal;
+            }
+        }
+        float diff = this.getReward() + gamma * maxQVal - prevQVal;
+        System.out.println("UPDATE WEIGHTS diff=" + diff + "\tbestQVal=" + maxQVal + "\tprevQ" + prevQVal + "\tprevFeatures=" + prevFeatureVals);
+        for (int i = 0; i < featureWeights.size(); i++) {
+            featureWeights.set(i, featureWeights.get(i) + alpha * diff * prevFeatureVals.get(i));
+        }
+        System.out.println("UPDATE WEIGHTS New Weights=" + featureWeights);
     }
 
     /**
-     * ALL FEATURES MUST BE < 1 otherwise the update will make them wildly diverge
+     * ALL FEATURES MUST BE <= 1
      * 
      * @param rowOneYPos
      * @param rowThreeYPos
@@ -174,15 +177,21 @@ public class ApproximateQLearningAgent extends AbstractFoosballAgent {
      */
     private List<Float> getFeatureValuesCurrentStateAndActions(int rowOneYPos, int rowThreeYPos, PlayerAngle rowOneAngle, PlayerAngle rowThreeAngle) {
         int adjustedRowOneYPos = (int) ((rowOneYPos / yPositionToByteFactor) + 152);
-        int adjustedRowThreeYPos = (int) (-(rowThreeYPos / yPositionToByteFactor) + 223);
-        int yPosOfBall = gameState.getBallYPosition() / 3;
+        int adjustedRowThreeYPos = (int) (-(rowThreeYPos / yPositionToByteFactor) + 226);
+        int yPosOfBall = gameState.getBallYPosition() / 2;
         List<Float> featureValues = new ArrayList<Float>(featureWeights.size());
 
         // Feature 1 - Actions that get the Y Pos of a player in line with the ball get a higher score
         featureValues.add(.0f);
         boolean willRowOneBeNearTheBall = false;
-        for (int player = 0; player < gameState.getNumbersOfPlayersForRow(0); player++) {
-            int yPosOfPlayer = (adjustedRowOneYPos - player * gameState.getDistanceBetweenPlayersForRow(0)) / 3;
+        for (int player = 0; player < gameState.getNumbersOfPlayersForRow(1); player++) {
+            int yPosOfPlayer = (adjustedRowOneYPos - player * gameState.getDistanceBetweenPlayersForRow(1)) / 2;
+            if (player == 0) {
+                yPosOfPlayer -= 2;
+            }
+            if (player == 2) {
+                yPosOfPlayer += 2;
+            }
             if (yPosOfBall == yPosOfPlayer) {
                 if (rowOneAngle == PlayerAngle.VERTICAL) {
                     featureValues.set(0, featureValues.get(0) + .5f);
@@ -193,7 +202,13 @@ public class ApproximateQLearningAgent extends AbstractFoosballAgent {
         }
         boolean willRowThreeBeNearTheBall = false;
         for (int player = 0; player < gameState.getNumbersOfPlayersForRow(3); player++) {
-            int yPosOfPlayer = (adjustedRowThreeYPos - player * gameState.getDistanceBetweenPlayersForRow(3)) / 3;
+            int yPosOfPlayer = (adjustedRowThreeYPos - player * gameState.getDistanceBetweenPlayersForRow(3)) / 2;
+            if (player == 0) {
+                yPosOfPlayer -= 5;
+            }
+            if (player == 2) {
+                yPosOfPlayer += 5;
+            }
             if (yPosOfBall == yPosOfPlayer) {
                 if (rowThreeAngle == PlayerAngle.VERTICAL) {
                     featureValues.set(0, featureValues.get(0) + .5f);
@@ -202,41 +217,82 @@ public class ApproximateQLearningAgent extends AbstractFoosballAgent {
                 break;
             }
         }
-        // Feature 2 If Ball is front of you score actions that might hit it forward
-        if (willRowOneBeNearTheBall && this.isBallInFrontAndWithinReachOfRow(0, gameState.getBallXPosition())
-                && rowOneAngle == PlayerAngle.FORWARD_ANGLED) {
+        // Feature 2 If Ball is front of you characterize actions that might hit it forward
+        if (willRowOneBeNearTheBall
+                && this.isBallInFrontAndWithinReachOfRow(1, gameState.getBallXPosition())
+                && rowOneAngle == PlayerAngle.FORWARD_ANGLED
+                && (gameState.getPlayerAngleForRow(1) != PlayerAngle.FORWARD_ANGLED || gameState.getPlayerAngleForRow(1) != PlayerAngle.FORWARD_HORIZONTAL)) {
+
             featureValues.add(1f);
         } else {
             featureValues.add(0f);
 
         }
         // Feature 3 same for row 3
-        if (willRowThreeBeNearTheBall && this.isBallInFrontAndWithinReachOfRow(3, gameState.getBallXPosition())
-                && rowThreeAngle == PlayerAngle.FORWARD_ANGLED) {
+        if (willRowThreeBeNearTheBall
+                && this.isBallInFrontAndWithinReachOfRow(3, gameState.getBallXPosition())
+                && rowThreeAngle == PlayerAngle.FORWARD_ANGLED
+                && (gameState.getPlayerAngleForRow(3) != PlayerAngle.FORWARD_ANGLED || gameState.getPlayerAngleForRow(3) != PlayerAngle.FORWARD_HORIZONTAL)) {
             featureValues.add(1f);
         } else {
             featureValues.add(0f);
         }
-        // Feature 3 If ball is behind row 0 score actions that might move it in the y axis
-        // if (this.isBallInBehindAndWithinReachOfRow(0, xPosOfBall)
-        // && (rowOneAngle == PlayerAngle.BACKWARD_ANGLED || rowOneAngle == PlayerAngle.BACKWARD_HORIZONTAL) &&
-        // !willRowOneBeNearTheBall) {
-        // featureValues.add(1f);
-        // } else {
-        // featureValues.add(0f);
-        // }
-        // Feature 4 if ball is behind row 3
-        // if (this.isBallInBehindAndWithinReachOfRow(3, xPosOfBall)
-        // && (rowThreeAngle == PlayerAngle.BACKWARD_ANGLED || rowThreeAngle == PlayerAngle.BACKWARD_HORIZONTAL) &&
-        // !willRowThreeBeNearTheBall) {
-        // featureValues.add(1f);
-        // } else {
-        // featureValues.add(0f);
-        // }
+        // Feature 4
+        boolean isRowOneNearTheBall = false;
+        for (int player = 0; player < gameState.getNumbersOfPlayersForRow(1); player++) {
+            int yPosOfPlayer = (gameState.getRowYPosition(1) - player * gameState.getDistanceBetweenPlayersForRow(1)) / 2;
+            if (player == 0) {
+                yPosOfPlayer -= 2;
+            }
+            if (player == 2) {
+                yPosOfPlayer += 2;
+            }
+            if (yPosOfBall == yPosOfPlayer) {
+                isRowOneNearTheBall = true;
+                break;
+            }
+        }
+        boolean isRowThreeNearTheBall = false;
+        for (int player = 0; player < gameState.getNumbersOfPlayersForRow(3); player++) {
+            int yPosOfPlayer = (gameState.getRowYPosition(3) - player * gameState.getDistanceBetweenPlayersForRow(3)) / 2;
+            if (player == 0) {
+                yPosOfPlayer -= 5;
+            }
+            if (player == 2) {
+                yPosOfPlayer += 5;
+            }
+            if (yPosOfBall == yPosOfPlayer) {
+                isRowThreeNearTheBall = true;
+                break;
+            }
+        }
+        if (!isRowOneNearTheBall && willRowOneBeNearTheBall && this.isBallInBehindAndWithinReachOfRow(1, gameState.getBallXPosition())
+                && rowOneAngle == PlayerAngle.BACKWARD_ANGLED) {
+            featureValues.add(1f);
+        } else if (isRowOneNearTheBall && !willRowOneBeNearTheBall && this.isBallInBehindAndWithinReachOfRow(1, gameState.getBallXPosition())
+                && rowOneAngle == PlayerAngle.BACKWARD_ANGLED) {
+            featureValues.add(1f);
+        } else if (!isRowThreeNearTheBall && willRowThreeBeNearTheBall && this.isBallInBehindAndWithinReachOfRow(3, gameState.getBallXPosition())
+                && rowThreeAngle == PlayerAngle.BACKWARD_ANGLED) {
+            featureValues.add(1f);
+        } else if (isRowThreeNearTheBall && !willRowThreeBeNearTheBall && this.isBallInBehindAndWithinReachOfRow(3, gameState.getBallXPosition())
+                && rowThreeAngle == PlayerAngle.BACKWARD_ANGLED) {
+            featureValues.add(1f);
+        } else {
+            featureValues.add(0f);
+        }
+        // Feature 5 anti jerkyness
+        featureValues.add(0f);
+        if (adjustedRowOneYPos / 6 == gameState.getRowYPosition(1) / 6) {
+            featureValues.set(4, featureValues.get(4) + .5f);
+        }
+        if (adjustedRowThreeYPos / 6 == gameState.getRowYPosition(3) / 6) {
+            featureValues.set(4, featureValues.get(4) + .5f);
+        }
         return featureValues;
     }
 
-    private float getRewardForCurrentState() {
+    private float getReward() {
         Player playerThatScored = gameState.getPlayerThatScored();
         if (playerThatScored == null) {
             int reward = 0;
@@ -248,7 +304,7 @@ public class ApproximateQLearningAgent extends AbstractFoosballAgent {
             int ballYPos = gameState.getBallYPosition() / 3;
 
             // Ball is in AI control
-            // Reward a hit
+            // Reward a hit -ignore actions due to non deterministic timing here
             if (this.isBallWithinReachOfRow(1, prevBallXPos) || this.isBallWithinReachOfRow(3, prevBallXPos)) {
                 if (ballXPos + 3 < prevBallXPos) {
                     reward += 20;
@@ -262,8 +318,18 @@ public class ApproximateQLearningAgent extends AbstractFoosballAgent {
                         }
                     }
                 }
+                // Reward the forwards for staying away from the ball if its moving to the left
+                if (ballXPos + 3 < prevBallXPos && prevBallXPos >= gameState.getMaxX() / 2) {
+                    reward += 2;
+                }
             } else {
-
+                // Reward players for staying down
+                if (this.previousIntendedPlayerAngles.get(0) == PlayerAngle.VERTICAL) {
+                    reward += 2;
+                }
+                if (this.previousIntendedPlayerAngles.get(1) == PlayerAngle.VERTICAL) {
+                    reward += 2;
+                }
                 // Reward players for following the ball
                 for (int player = 0; player < gameState.getNumbersOfPlayersForRow(3); player++) {
                     int yPosOfPlayer = (yPositionOfRowThree - player * gameState.getDistanceBetweenPlayersForRow(3)) / 3;
@@ -285,7 +351,7 @@ public class ApproximateQLearningAgent extends AbstractFoosballAgent {
         } else if (playerThatScored == Player.SELF) {
             return 50;
         } else {
-            return -10;
+            return 0;
         }
     }
 
@@ -321,14 +387,25 @@ public class ApproximateQLearningAgent extends AbstractFoosballAgent {
     }
 
     private boolean isBallInFrontAndWithinReachOfRow(int row, int xPosOfBall) {
-        return (xPosOfBall <= gameState.getRowXPosition(row) && xPosOfBall > gameState.getRowXPosition(row) - 35);
+        if (row == 3) {
+            return (xPosOfBall < (gameState.getRowXPosition(row) - 15) && xPosOfBall > gameState.getRowXPosition(row) - 55);
+        }
+        return (xPosOfBall < (gameState.getRowXPosition(row) - 8) && xPosOfBall > gameState.getRowXPosition(row) - 40);
     }
 
     private boolean isBallInBehindAndWithinReachOfRow(int row, int xPosOfBall) {
-        return (xPosOfBall > gameState.getRowXPosition(row) && xPosOfBall < gameState.getRowXPosition(row) + 35);
+        return (xPosOfBall >= gameState.getRowXPosition(row) + 10 && xPosOfBall < gameState.getRowXPosition(row) + 35);
     }
 
     private boolean isBallWithinReachOfRow(int row, int xPosOfBall) {
         return this.isBallInFrontAndWithinReachOfRow(row, xPosOfBall) || this.isBallInBehindAndWithinReachOfRow(row, xPosOfBall);
+    }
+
+    private boolean isBallInFrontOfRow(int row, int xPosOfBall) {
+        return (xPosOfBall < gameState.getRowXPosition(row));
+    }
+
+    private boolean isBallBehindRow(int row, int xPosOfBall) {
+        return (xPosOfBall >= gameState.getRowXPosition(row));
     }
 }

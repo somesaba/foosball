@@ -328,9 +328,21 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
         public PotentialPositionRectangle call() throws Exception {
             List<PotentialPositionRectangle> potentialBallPositionRectangles = new ArrayList<PotentialPositionRectangle>();
             for (int x = xStart; x < xEnd; x++) {
+                boolean skip = false;
+                // Check to see if pixel is on the bar
+                for (int row = 0; row < gameState.getNumOfRows(); row++) {
+                    int xPositionOfBar = gameState.getRowXPosition(row);
+                    if (x > xPositionOfBar - 6 && x < xPositionOfBar + 6) {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (skip) {
+                    continue;
+                }
                 for (int y = 0; y < img.getHeight(); y++) {
                     Color color = new Color(img.getRGB(x, y));
-                    if (color.getRed() > 200 && color.getGreen() > 200 && color.getBlue() > 200) {
+                    if (color.getRed() > 220 && color.getGreen() > 220 && color.getBlue() > 220) {
                         List<PotentialPositionRectangle> rectMemberships = new ArrayList<PotentialPositionRectangle>();
                         for (PotentialPositionRectangle rect : potentialBallPositionRectangles) {
                             if (rect.isPotentialMember(x, y)) {

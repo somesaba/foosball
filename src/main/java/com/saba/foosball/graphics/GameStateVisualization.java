@@ -337,6 +337,18 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
         graphics.setColor(Color.WHITE);
         List<PotentialPositionRectangle> potentialBallPositionRectangles = new ArrayList<PotentialPositionRectangle>();
         for (int x = 0; x < img.getWidth(); x++) {
+            boolean skip = false;
+            // Check to see if pixel is on the bar
+            for (int row = 0; row < gameState.getNumOfRows(); row++) {
+                int xPositionOfBar = gameState.getRowXPosition(row);
+                if (x > xPositionOfBar - 6 && x < xPositionOfBar + 6) {
+                    skip = true;
+                    break;
+                }
+            }
+            if (skip) {
+                continue;
+            }
             for (int y = 0; y < img.getHeight(); y++) {
                 Color color = new Color(img.getRGB(x, y));
                 if (color.getRed() > 200 && color.getGreen() > 200 && color.getBlue() > 200) {
@@ -372,6 +384,27 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
         BufferedImage img = stateReader.readState();
         Color color = new Color(img.getRGB(e.getX() - xBounds / 2, e.getY()));
         System.out.println("R=" + color.getRed() + " G=" + color.getGreen() + " B=" + color.getBlue() + "Position=" + e.getPoint());
+        // // Feature 3
+        int yPosOfBall = gameState.getBallYPosition() / 3;
+        List<Integer> yPositions = new ArrayList<Integer>();
+        boolean isRowThreeNearTheBall = false;
+        for (int player = 0; player < gameState.getNumbersOfPlayersForRow(3); player++) {
+            int yPosOfPlayer = (gameState.getRowYPosition(3) - player * gameState.getDistanceBetweenPlayersForRow(3)) / 3;
+            if (player == 0) {
+                yPosOfPlayer -= 3;
+            }
+            if (player == 2) {
+                yPosOfPlayer += 3;
+            }
+            yPositions.add(yPosOfPlayer);
+
+            if (yPosOfBall == yPosOfPlayer) {
+                isRowThreeNearTheBall = true;
+            }
+        }
+        int xPosOfBall = gameState.getBallXPosition();
+        boolean hit = (xPosOfBall < (gameState.getRowXPosition(3)) && xPosOfBall > gameState.getRowXPosition(3) - 50);
+        System.out.println("is=" + isRowThreeNearTheBall + "\tList=" + yPositions + "\tball=" + yPosOfBall + "\thit=" + hit);
     }
 
     public void mouseEntered(MouseEvent e) {

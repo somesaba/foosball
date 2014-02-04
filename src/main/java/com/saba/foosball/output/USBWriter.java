@@ -102,6 +102,9 @@ public class USBWriter {
     }
 
     public void setHardPlayerPositions(List<Integer> intendedYPositions, List<PlayerAngle> intendedPlayerAngles) {
+        // if (!intendedYPositions.isEmpty()) {
+        // return;
+        // }
         // Map integers to bytes
         try {
             ByteBuffer buf = ByteBuffer.allocate(intendedPlayerAngles.size() * 2);

@@ -4,10 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.saba.foosball.agent.AbstractFoosballAgent;
-import com.saba.foosball.agent.ApproximateQLearningAgent;
 import com.saba.foosball.graphics.GameStateVisualization;
 import com.saba.foosball.input.FoosballStateReader;
-import com.saba.foosball.input.WebcamFoosballStateReader;
+import com.saba.foosball.input.JavaCVFoosballStateReader;
 import com.saba.foosball.model.GameState;
 import com.saba.foosball.output.USBWriter;
 
@@ -28,12 +27,14 @@ public class Foosball {
             visualization.start();
             stateUpdater.register(visualization);
         }
-        USBWriter usbWriter = new USBWriter();
-        usbWriter.initialize();
-        foosballAgent.setUsbWriter(usbWriter);
-        foosballAgent.setGameState(gameState);
-        foosballAgent.start();
-        stateUpdater.register(foosballAgent);
+        if (foosballAgent != null) {
+            USBWriter usbWriter = new USBWriter();
+            usbWriter.initialize();
+            foosballAgent.setUsbWriter(usbWriter);
+            foosballAgent.setGameState(gameState);
+            foosballAgent.start();
+            stateUpdater.register(foosballAgent);
+        }
         stateUpdater.setGameState(gameState);
         stateUpdater.start();
     }
@@ -44,7 +45,7 @@ public class Foosball {
 
     public static void main(String[] args) {
         Foosball foosball = new Foosball();
-        FoosballStateReader stateReader = new WebcamFoosballStateReader();
+        FoosballStateReader stateReader = new JavaCVFoosballStateReader();
         GameStateUpdater gameStateUpdater = new NaiveGameStateUpdater();
         gameStateUpdater.setStateReader(stateReader);
         Map<Integer, Integer> rowToPlayerCountMap = new HashMap<Integer, Integer>();
@@ -54,6 +55,7 @@ public class Foosball {
             rowToPlayerCountMap.put(i, 3);
             rowToPlayerDistanceMap.put(i, 68);
             rowToXPositionMap.put(i, i * 78 + 40);
+
         }
         foosball.setStateReader(stateReader);
         foosball.setStateUpdater(gameStateUpdater);
@@ -62,7 +64,7 @@ public class Foosball {
         foosball.setRowToPlayerDistanceMap(rowToPlayerDistanceMap);
         foosball.setRowToXPositionMap(rowToXPositionMap);
         // foosball.setFoosballAgent(new MirrorAgent());
-        foosball.setFoosballAgent(new ApproximateQLearningAgent());
+        // foosball.setFoosballAgent(new ApproximateQLearningAgent());
         foosball.start();
     }
 

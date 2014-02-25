@@ -29,7 +29,7 @@ public class USBWriter {
         // Calculate gameState to byte factors
         yPositionToByteFactor = 45d / 70d;
         rowYPosisitionOffset.add((byte) 83);
-        rowYPosisitionOffset.add((byte) 63);
+        rowYPosisitionOffset.add((byte) 78);
         CommPortIdentifier portId = null;
 
         try {

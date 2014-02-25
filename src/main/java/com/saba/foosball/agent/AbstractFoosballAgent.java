@@ -21,6 +21,7 @@ public abstract class AbstractFoosballAgent implements GameStateListener, Runnab
 
     public void start() {
         agentThread = new Thread(this, "AgentThread");
+        agentThread.setPriority(Thread.MAX_PRIORITY);
         agentThread.start();
     }
 

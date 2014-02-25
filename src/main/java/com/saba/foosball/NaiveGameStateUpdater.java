@@ -38,7 +38,6 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
             this.updatePlayerPositions(img);
             // Wait for futures and update ball positions if not in end state
             this.updateBallPosition(potentialBallPositions);
-
             if (gameState.getPlayerThatScored() != null)
                 gameState.updateBallPosition(gameState.getMaxX() / 2, gameState.getMaxY() / 2);
 
@@ -53,8 +52,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                 for (int y = 140; y < img.getHeight(); y++) {
                     Color color = new Color(img.getRGB(x, y));
                     if (row == 1 || row == 3) {
-                        if (color.getRed() - color.getGreen() > 20 && color.getRed() - color.getBlue() > 50
-                                && color.getGreen() - color.getBlue() > 10) {
+                        if (color.getRed() - color.getGreen() > 20 && color.getRed() - color.getBlue() > 50) {
                             List<PotentialPositionRectangle> rectMemberships = new ArrayList<PotentialPositionRectangle>();
                             for (PotentialPositionRectangle rect : potentialPositionRectangles) {
                                 if (rect.isPotentialMember(x, y)) {
@@ -302,12 +300,12 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                 ballYPosition = yPosition;
             }
         }
-        // System.out.println("Best Rec Size=" + (xEnd - xStart) + "," + (yEnd - yStart) + "\t dist=" + bestScore);
+        // System.out.println("Best Rec Size=" + ballXPosition + "," + ballYPosition + "\t dist=" + bestScore);
         gameState.updateBallPosition(ballXPosition, ballYPosition);
-        if (ballXPosition < 20) {
+        if (ballXPosition < 16) {
             gameState.setScoringPlayer(Player.SELF);
         }
-        if (ballXPosition > 295) {
+        if (ballXPosition > 299) {
             gameState.setScoringPlayer(Player.ENEMY);
         }
     }
@@ -342,7 +340,7 @@ public class NaiveGameStateUpdater implements Runnable, GameStateUpdater {
                 }
                 for (int y = 0; y < img.getHeight(); y++) {
                     Color color = new Color(img.getRGB(x, y));
-                    if (color.getRed() > 220 && color.getGreen() > 220 && color.getBlue() > 220) {
+                    if (color.getRed() > 200 && color.getGreen() > 200 && color.getBlue() > 200) {
                         List<PotentialPositionRectangle> rectMemberships = new ArrayList<PotentialPositionRectangle>();
                         for (PotentialPositionRectangle rect : potentialBallPositionRectangles) {
                             if (rect.isPotentialMember(x, y)) {

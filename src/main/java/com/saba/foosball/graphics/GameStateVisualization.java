@@ -97,7 +97,7 @@ public class GameStateVisualization extends Canvas implements GameStateListener,
                 this.refreshGraphics();
             } else {
                 try {
-                    Thread.sleep(10);
+                    Thread.sleep(8);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
